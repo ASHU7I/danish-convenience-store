@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Danish Convenience Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);color-scheme:light}
+        i[class*="fa-"]{font-style:normal}
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .backdrop-blur-md { backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans min-h-screen flex flex-col pb-20 md:pb-8">
+
+    <!-- TOP ANNOUNCEMENT BANNER FOR CLOSED STORE -->
+    <div id="closedBanner" class="hidden bg-amber-500 text-white font-medium text-center py-2.5 px-4 text-xs md:text-sm sticky top-0 z-50 shadow-md">
+        <i class="fa-solid fa-clock mr-2"></i>
+        <span id="closedBannerMessage">Danish Convenience Store is currently closed for new orders.</span>
+    </div>
+
+    <!-- MAIN NAVBAR HEADER -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="resetFilter()">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xl font-black shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-shop"></i>
+                </div>
+                <div>
+                    <h1 class="font-extrabold text-lg md:text-xl text-gray-900 tracking-tight leading-none">Danish Convenience Store</h1>
+                    <div class="flex items-center gap-2 mt-1">
+                        <!-- IST Status Badge -->
+                        <span id="storeStatusBadge" class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-600">
+                            <span class="w-2 h-2 rounded-full bg-gray-400 animate-pulse"></span> Checking IST...
+                        </span>
+                        <span id="storeTimingPreview" class="text-[11px] text-gray-500 hidden sm:inline-block">IST 8:00 AM - 10:00 PM</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Direct Search Bar (Desktop/Tablet) -->
+            <div class="hidden sm:flex flex-1 max-w-md mx-4 relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                <input type="text" id="searchInputDesktop" placeholder="Search cold drinks, biscuits, ice cream..."
+                    oninput="handleSearch(this.value)"
+                    class="w-full pl-10 pr-4 py-2 bg-gray-100 border border-transparent rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:outline-none transition-all">
+                <button onclick="clearSearch()" id="clearSearchBtnDesktop" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                </button>
+            </div>
+
+            <!-- Right Actions -->
+            <div class="flex items-center gap-2">
+                <button onclick="openAdminModal()" class="px-3 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-user-gear text-brand-600"></i>
+                    <span class="hidden sm:inline">Admin</span>
+                </button>
+                <button onclick="toggleCartDrawer()" class="relative p-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-basket-shopping text-base"></i>
+                    <span id="cartCountBadge" class="bg-white text-brand-700 text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar -->
+        <div class="px-4 pb-3 sm:hidden">
+            <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
+                <input type="text" id="searchInputMobile" placeholder="Search products..."
+                    oninput="handleSearch(this.value)"
+                    class="w-full pl-10 pr-4 py-2 bg-gray-100 border border-transparent rounded-xl text-sm focus:bg-white focus:border-brand-500 focus:outline-none transition-all">
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full space-y-8">
+
+        <!-- 3 MAIN CATEGORY TILES HUB -->
+        <section id="categoryHub" class="space-y-3">
+            <h2 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Browse Top Categories</h2>
+            <div class="grid grid-cols-3 gap-3 md:gap-6">
+                <!-- Cold Drinks Tile -->
+                <div onclick="selectCategory('Cold Drinks')" class="group cursor-pointer relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white p-3 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="absolute -right-4 -bottom-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                        <i class="fa-solid fa-bottle-water text-7xl md:text-9xl"></i>
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center sm:items-start text-center sm:text-left h-full justify-between">
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl md:text-3xl mb-2">
+                            🥤
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-xs sm:text-lg md:text-xl leading-tight">Cold Drinks & Water</h3>
+                            <p class="text-[10px] sm:text-xs text-blue-100 mt-0.5 hidden sm:block">Campa, Frooti, Smoodh & More</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kirana & Biscuits Tile -->
+                <div onclick="selectCategory('Biscuits & Kirana')" class="group cursor-pointer relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white p-3 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="absolute -right-4 -bottom-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                        <i class="fa-solid fa-cookie-bite text-7xl md:text-9xl"></i>
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center sm:items-start text-center sm:text-left h-full justify-between">
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl md:text-3xl mb-2">
+                            🍪
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-xs sm:text-lg md:text-xl leading-tight">Kirana & Biscuits</h3>
+                            <p class="text-[10px] sm:text-xs text-amber-100 mt-0.5 hidden sm:block">Parle G, Good Day, Monaco</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Icecream Tile -->
+                <div onclick="selectCategory('Icecream')" class="group cursor-pointer relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white p-3 md:p-6 shadow-md hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                    <div class="absolute -right-4 -bottom-4 opacity-20 group-hover:opacity-30 transition-opacity">
+                        <i class="fa-solid fa-ice-cream text-7xl md:text-9xl"></i>
+                    </div>
+                    <div class="relative z-10 flex flex-col items-center sm:items-start text-center sm:text-left h-full justify-between">
+                        <div class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-2xl md:text-3xl mb-2">
+                            🍦
+                        </div>
+                        <div>
+                            <h3 class="font-extrabold text-xs sm:text-lg md:text-xl leading-tight">Ice Cream & Cones</h3>
+                            <p class="text-[10px] sm:text-xs text-pink-100 mt-0.5 hidden sm:block">Chocobar, Cones & Cups</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CATEGORY NAVIGATION TABS -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar py-1" id="categoryTabContainer">
+            <!-- Dynamic Category Chips -->
+        </div>
+
+        <!-- PRODUCT GRID & SECTION HEADER -->
+        <section class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 id="activeSectionTitle" class="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <span id="categoryTitleText">All Products</span>
+                    <span id="productCountBadge" class="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-semibold">0</span>
+                </h2>
+                <button onclick="resetFilter()" class="text-xs font-semibold text-brand-600 hover:text-brand-700">View All</button>
+            </div>
+
+            <!-- Product Grid -->
+            <div id="productGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-5">
+                <!-- Dynamic Product Cards -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center space-y-3">
+                <div class="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-2xl text-gray-400">
+                    <i class="fa-solid fa-box-open"></i>
+                </div>
+                <p class="font-semibold text-gray-600">No products found</p>
+                <button onclick="resetFilter()" class="text-xs text-brand-600 font-bold hover:underline">Clear Search or Category Filter</button>
+            </div>
+        </section>
+    </main>
+
+    <!-- SHOPPING CART SIDEBAR DRAWER -->
+    <div id="cartDrawer" class="fixed inset-0 z-50 pointer-events-none transition-opacity duration-300 opacity-0">
+        <!-- Backdrop -->
+        <div onclick="toggleCartDrawer()" class="absolute inset-0 bg-black/40 backdrop-blur-xs"></div>
+
+        <!-- Drawer Panel -->
+        <div id="cartPanel" class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl flex flex-col translate-x-full transition-transform duration-300 pointer-events-auto">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-basket-shopping text-brand-600 text-lg"></i>
+                    <h3 class="font-bold text-lg text-gray-900">Your Basket</h3>
+                </div>
+                <button onclick="toggleCartDrawer()" class="p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <!-- Cart Items List -->
+            <div id="cartItemsContainer" class="flex-1 overflow-y-auto p-4 space-y-3">
+                <!-- Rendered dynamically -->
+            </div>
+
+            <!-- Footer Checkout -->
+            <div class="p-4 border-t border-gray-100 bg-white space-y-3">
+                <div class="flex justify-between items-center text-sm">
+                    <span class="text-gray-500 font-medium">Subtotal</span>
+                    <span id="cartSubtotal" class="font-bold text-gray-900 text-lg">₹0</span>
+                </div>
+                <div id="deliveryNotice" class="hidden"></div>
+                <div class="space-y-2">
+                    <input id="custName" type="text" placeholder="Your name *" class="w-full px-3 py-2 text-sm border rounded-xl">
+                    <input id="custPhone" type="tel" placeholder="Phone number" class="w-full px-3 py-2 text-sm border rounded-xl">
+                    <input id="custAddr" type="text" placeholder="Delivery address *" class="w-full px-3 py-2 text-sm border rounded-xl">
+                </div>
+                <div id="closedCartNotice" class="hidden text-xs bg-amber-50 text-amber-700 p-2.5 rounded-xl border border-amber-200">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Store is closed. Ordering is paused until we reopen.
+                </div>
+                <button id="whatsappCheckoutBtn" onclick="checkoutWhatsApp()" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all">
+                    <i class="fa-brands fa-whatsapp text-xl"></i>
+                    <span>Order via WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DELIVERY CHART VIEWER -->
+    <div id="chartModal" class="fixed inset-0 z-[60] hidden bg-black/70 flex items-center justify-center p-4" onclick="closeDeliveryChart()">
+        <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-auto p-3" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-2">
+                <h4 class="font-bold text-gray-900 text-sm">Delivery Charges</h4>
+                <button onclick="closeDeliveryChart()" class="px-2 text-gray-500 text-lg">✕</button>
+            </div>
+            <img id="chartModalImg" src="" alt="Delivery charges" class="w-full rounded-xl">
+        </div>
+    </div>
+
+    <!-- ADMIN MODAL -->
+    <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+            <!-- Header -->
+            <div class="p-4 bg-gray-900 text-white flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-shield-halved text-brand-400"></i>
+                    <h3 class="font-bold text-lg">Store Administration Panel</h3>
+                </div>
+                <button onclick="closeAdminModal()" class="text-gray-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Auth Form -->
+            <div id="adminAuthSection" class="p-8 text-center space-y-4">
+                <div class="w-12 h-12 bg-brand-100 text-brand-600 rounded-2xl flex items-center justify-center mx-auto text-xl">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+                <h4 class="font-bold text-gray-900">Admin Login</h4>
+
+                <div class="max-w-xs mx-auto space-y-2">
+                    <input type="email" id="adminEmailInput" placeholder="Admin email" class="w-full px-4 py-2 border rounded-xl text-center focus:outline-none focus:border-brand-500">
+                    <div class="relative">
+                        <input type="password" id="adminPasswordInput" placeholder="Password" class="w-full pl-4 pr-12 py-2 border rounded-xl text-center focus:outline-none focus:border-brand-500">
+                        <button type="button" id="togglePwBtn" onclick="togglePasswordVisibility()" class="absolute right-2 top-1/2 -translate-y-1/2 px-2 text-lg" aria-label="Show or hide password">👁️</button>
+                    </div>
+                    <button id="adminLoginBtn" onclick="verifyAdminPassword()" class="w-full py-2 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700">Login to Admin</button>
+                    <p id="adminAuthMsg" class="text-xs font-semibold text-rose-600 min-h-[1rem]"></p>
+                </div>
+            </div>
+
+            <!-- Admin Content Dashboard -->
+            <div id="adminDashboardSection" class="hidden flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
+                <!-- Nav Tabs -->
+                <div class="flex border-b border-gray-200 gap-4 text-sm font-bold">
+                    <button id="adminTabProductsBtn" onclick="switchAdminTab('products')" class="pb-2 border-b-2 border-brand-600 text-brand-600">Product List & Add</button>
+                    <button id="adminTabTimingsBtn" onclick="switchAdminTab('timings')" class="pb-2 border-b-2 border-transparent text-gray-500 hover:text-gray-900">Store Timings & Status</button>
+                    <button id="adminTabCategoriesBtn" onclick="switchAdminTab('categories')" class="pb-2 border-b-2 border-transparent text-gray-500 hover:text-gray-900">Manage Categories</button>
+                </div>
+
+                <!-- TAB 1: PRODUCTS MANAGEMENT -->
+                <div id="adminTabProducts" class="space-y-6">
+                    <!-- Add/Edit Product Form -->
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-4">
+                        <h4 id="formTitle" class="font-bold text-gray-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-brand-600"></i> Add New Product
+                        </h4>
+                        <input type="hidden" id="editingProductId" value="">
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-xs font-semibold text-gray-600">Product Name *</label>
+                                <input type="text" id="prodName" placeholder="e.g. Campa Cola 500ml" class="w-full px-3 py-2 text-sm border rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-600">Price (₹) *</label>
+                                <input type="number" id="prodPrice" placeholder="20" class="w-full px-3 py-2 text-sm border rounded-xl bg-white">
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-600">Category *</label>
+                                <select id="prodCategory" class="w-full px-3 py-2 text-sm border rounded-xl bg-white">
+                                    <!-- Dynamic Options -->
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-xs font-semibold text-gray-600">Product Picture (File Upload)</label>
+                                <input type="file" id="prodImageFile" accept="image/*" class="w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-brand-50 file:text-brand-700">
+                                <input type="text" id="prodImageUrl" placeholder="Pick a photo above (link fills in automatically)" class="w-full px-3 py-1.5 text-xs border rounded-xl bg-white mt-1">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600">Short Description (Optional)</label>
+                            <input type="text" id="prodDesc" placeholder="e.g. Chilled refreshing drink" class="w-full px-3 py-1.5 text-sm border rounded-xl bg-white">
+                        </div>
+
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600">Stock Quantity (optional, leave empty to hide the number)</label>
+                            <input type="number" min="0" id="prodQty" placeholder="e.g. 2" class="w-full px-3 py-1.5 text-sm border rounded-xl bg-white">
+                        </div>
+
+                        <!-- Toggles -->
+                        <div class="flex flex-wrap gap-6 text-sm">
+                            <label class="flex items-center gap-2 cursor-pointer font-semibold text-gray-700">
+                                <input type="checkbox" id="prodInStock" checked class="w-4 h-4 text-brand-600 rounded">
+                                <span>In Stock</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer font-semibold text-gray-700">
+                                <input type="checkbox" id="prodVisible" checked class="w-4 h-4 text-brand-600 rounded">
+                                <span>Visible on Website (Publish)</span>
+                            </label>
+                        </div>
+
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="saveProduct()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-bold text-xs rounded-xl shadow transition-all">Save Product</button>
+                            <button onclick="cancelProductEdit()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold text-xs rounded-xl transition-all">Cancel</button>
+                            <button onclick="resetToInitialData()" class="ml-auto px-3 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold text-xs rounded-xl border border-indigo-200">🌱 Reset Catalog</button>
+                        </div>
+                    </div>
+
+                    <!-- Out of stock panel -->
+                    <div class="bg-rose-50 border border-rose-200 rounded-2xl p-3 space-y-2">
+                        <h4 class="font-bold text-rose-800 text-sm">🚫 Out of Stock Right Now (<span id="outStockCount">0</span>)</h4>
+                        <div id="outStockList" class="flex flex-wrap gap-2"></div>
+                    </div>
+
+                    <!-- Inventory Table -->
+                    <div class="space-y-2">
+                        <h4 class="font-bold text-gray-900 text-sm">Product Inventory (<span id="adminProdCount">0</span>)</h4>
+                        <div class="flex flex-col sm:flex-row gap-2">
+                            <input type="text" id="adminSearchInput" oninput="adminSearch(this.value)" placeholder="🔍 Search product to update..." class="flex-1 px-3 py-2 text-sm border rounded-xl bg-white focus:outline-none focus:border-brand-500">
+                            <div class="flex gap-1.5 text-xs font-bold">
+                                <button id="adminFilterAll" onclick="setAdminFilter('all')" class="px-3 py-2 rounded-xl bg-brand-600 text-white">All</button>
+                                <button id="adminFilterOut" onclick="setAdminFilter('out')" class="px-3 py-2 rounded-xl bg-gray-200 text-gray-700">Out of stock</button>
+                            </div>
+                        </div>
+                        <div id="adminProductList" class="divide-y divide-gray-100 border border-gray-200 rounded-2xl bg-white overflow-hidden max-h-80 overflow-y-auto">
+                            <!-- Dynamic Admin Product List -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 2: STORE TIMINGS & STATUS -->
+                <div id="adminTabTimings" class="hidden space-y-6">
+                    <div class="bg-amber-50 p-4 rounded-2xl border border-amber-200 space-y-3">
+                        <h4 class="font-bold text-amber-900 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-power-off"></i> Temporary Store Closure Override
+                        </h4>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="tempClosedToggle" onchange="saveStoreSettings(true)" class="w-5 h-5 text-amber-600 rounded">
+                            <span class="font-bold text-gray-800 text-sm">Force Mark Store as "TEMPORARILY CLOSED"</span>
+                        </label>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600">Notice Banner Message</label>
+                            <input type="text" id="tempClosedMsg" placeholder="e.g. Back on Monday at 9 AM" class="w-full px-3 py-2 text-sm border rounded-xl bg-white mt-1" onchange="saveStoreSettings(true)">
+                        </div>
+                    </div>
+
+                    <div class="bg-sky-50 p-4 rounded-2xl border border-sky-200 space-y-3">
+                        <h4 class="font-bold text-sky-900 text-sm">🛵 Home Delivery</h4>
+                        <label class="flex items-center gap-3 cursor-pointer">
+                            <input type="checkbox" id="deliveryToggle" onchange="saveDeliverySettings()" class="w-5 h-5 text-sky-600 rounded">
+                            <span class="font-bold text-gray-800 text-sm">Home delivery is available</span>
+                        </label>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600">Message shown when delivery is OFF (optional)</label>
+                            <input type="text" id="deliveryMsgInput" placeholder="e.g. Back tomorrow. Pickup from shop is available." class="w-full px-3 py-2 text-sm border rounded-xl bg-white mt-1" onchange="saveDeliverySettings()">
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-gray-600">Delivery charges picture (distance and price chart)</label>
+                            <input type="file" id="deliveryChartFile" accept="image/*" onchange="uploadDeliveryChart(this)" class="w-full text-xs text-gray-500 mt-1 file:mr-2 file:py-1 file:px-2 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-sky-100 file:text-sky-800">
+                            <img id="deliveryChartPreview" src="" alt="Delivery chart" class="hidden mt-2 max-h-48 rounded-xl border border-sky-200">
+                            <button id="deliveryChartRemove" onclick="removeDeliveryChart()" class="hidden mt-2 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">Remove picture</button>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-4">
+                        <h4 class="font-bold text-gray-900 text-sm">Weekly Opening & Closing Hours (IST)</h4>
+                        <div id="weeklyTimingGrid" class="space-y-3 text-sm">
+                            <!-- Rendered Days Monday-Sunday -->
+                        </div>
+                        <button onclick="saveStoreSettings()" class="px-4 py-2 bg-brand-600 text-white font-bold text-xs rounded-xl shadow hover:bg-brand-700">Save Timing Settings</button>
+                    </div>
+                </div>
+
+                <!-- TAB 3: CATEGORIES MANAGEMENT -->
+                <div id="adminTabCategories" class="hidden space-y-4">
+                    <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-3">
+                        <h4 class="font-bold text-gray-900 text-sm">Create New Category</h4>
+                        <div class="flex gap-2">
+                            <input type="text" id="newCategoryInput" placeholder="Category Name (e.g. Shirts, Snacks)" class="flex-1 px-3 py-2 text-sm border rounded-xl bg-white">
+                            <button onclick="addCategory()" class="px-4 py-2 bg-brand-600 text-white font-bold text-xs rounded-xl shadow">Add</button>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-xs uppercase text-gray-400 mb-2">Active Categories</h4>
+                        <div id="adminCategoryList" class="flex flex-wrap gap-2">
+                            <!-- Dynamic category tags -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE SCRIPT (SUPABASE) -->
+    <script>
+        // STARTER PRODUCTS (uploaded to the database once via "Reset Catalog")
+        const DEFAULT_PRODUCTS = [
+            // Cold Drinks / Bottles
+            { id: "p1", name: "Campa Water Bottle", price: 15, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p2", name: "Campa 500ml Orange", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p3", name: "Campa 500ml Cola", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p4", name: "Campa 500ml Powerup", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p5", name: "Campa 150ml Lemon", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p6", name: "Campa 150ml Orange", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p7", name: "Campa 150ml Cola", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p8", name: "Campa 150ml Powerup", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p9", name: "Campa Energy Gold Boost", price: 30, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p10", name: "Frooti 10rs Box", price: 10, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p11", name: "Smoodh 10rs Box", price: 10, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p12", name: "Smoodh 20rs Bottle", price: 20, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p13", name: "Appy Fizz 10rs", price: 10, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p14", name: "Brivary Water Bottle 10rs", price: 10, category: "Cold Drinks", inStock: true, visible: true },
+            { id: "p15", name: "Brivary Water Bottle 5rs", price: 5, category: "Cold Drinks", inStock: true, visible: true },
+
+            // Biscuits / Kirana
+            { id: "p16", name: "Parle G", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p17", name: "Good Day", price: 20, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p18", name: "Happy Happy", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p19", name: "Krackjack", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p20", name: "Monaco", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p21", name: "Bourbon", price: 20, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p22", name: "Jam In", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p23", name: "Magic", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+            { id: "p24", name: "20-20 Biscuits", price: 10, category: "Biscuits & Kirana", inStock: true, visible: true },
+
+            // Icecream
+            { id: "p25", name: "Mini Chocobar", price: 15, category: "Icecream", inStock: true, visible: true },
+            { id: "p26", name: "Chocobar", price: 25, category: "Icecream", inStock: true, visible: true },
+            { id: "p27", name: "Choco Crisp", price: 30, category: "Icecream", inStock: true, visible: true },
+            { id: "p28", name: "Triple Bar", price: 35, category: "Icecream", inStock: true, visible: true },
+            { id: "p29", name: "Mini Magic Cone", price: 20, category: "Icecream", inStock: true, visible: true },
+            { id: "p30", name: "Mini Vanilla Cone", price: 15, category: "Icecream", inStock: true, visible: true },
+            { id: "p31", name: "Vanilla Cone 20rs", price: 20, category: "Icecream", inStock: true, visible: true },
+            { id: "p32", name: "Vanilla Cone 30rs", price: 30, category: "Icecream", inStock: true, visible: true },
+            { id: "p33", name: "Strawberry Cone 20rs", price: 20, category: "Icecream", inStock: true, visible: true },
+            { id: "p34", name: "Strawberry Cone 30rs", price: 30, category: "Icecream", inStock: true, visible: true },
+            { id: "p35", name: "Butterscotch Cone 25rs", price: 25, category: "Icecream", inStock: true, visible: true },
+            { id: "p36", name: "Butterscotch Cone 40rs", price: 40, category: "Icecream", inStock: true, visible: true },
+            { id: "p37", name: "Chocolate Cone 25rs", price: 25, category: "Icecream", inStock: true, visible: true },
+            { id: "p38", name: "Chocolate Cone 40rs", price: 40, category: "Icecream", inStock: true, visible: true },
+            { id: "p39", name: "Arabian Fantasy 25rs", price: 25, category: "Icecream", inStock: true, visible: true },
+            { id: "p40", name: "Pista Cone 20rs", price: 20, category: "Icecream", inStock: true, visible: true },
+            { id: "p41", name: "Cup Vanilla", price: 10, category: "Icecream", inStock: true, visible: true },
+            { id: "p42", name: "Cup Strawberry", price: 10, category: "Icecream", inStock: true, visible: true },
+            { id: "p43", name: "Cup Pineapple", price: 10, category: "Icecream", inStock: true, visible: true },
+            { id: "p44", name: "Cup Butterscotch", price: 15, category: "Icecream", inStock: true, visible: true },
+            { id: "p45", name: "Icecream Sandwich Coffee", price: 30, category: "Icecream", inStock: true, visible: true },
+            { id: "p46", name: "Kwikie Sundae Glass", price: 45, category: "Icecream", inStock: true, visible: true }
+        ];
+
+        // SUPABASE CONNECTION
+        const SUPABASE_URL = 'https://ckzovxyxaaojnifyyyid.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_enVdmMp0NSSvcxr8nVnkRg_G5RIF7wA';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const fromRow = r => ({
+            id: r.id, name: r.name, price: Number(r.price), category: r.category,
+            desc: r.description || '', imageUrl: r.image_url || '',
+            inStock: r.in_stock, visible: r.visible,
+            stockQty: r.stock_qty == null ? null : Number(r.stock_qty)
+        });
+        const toRow = p => ({
+            id: p.id, name: p.name, price: p.price, category: p.category,
+            description: p.desc || null, image_url: p.imageUrl || null,
+            in_stock: p.inStock !== false, visible: p.visible !== false,
+            stock_qty: (p.stockQty == null ? null : p.stockQty)
+        });
+
+        async function loadData() {
+            try {
+                const [p, c, s] = await Promise.all([
+                    sb.from('products').select('*').order('created_at', { ascending: false }),
+                    sb.from('categories').select('name').order('created_at'),
+                    sb.from('store_settings').select('data').eq('id', 1).maybeSingle()
+                ]);
+                if (p.error) console.error('Products error:', p.error.message);
+                if (c.error) console.error('Categories error:', c.error.message);
+                if (s.error) console.error('Settings error:', s.error.message);
+                if (p.data) products = p.data.map(fromRow);
+                if (c.data && c.data.length) categories = c.data.map(x => x.name);
+                if (s.data && s.data.data) storeSettings = s.data.data;
+            } catch (e) {
+                console.error('Could not load data:', e);
+            }
+        }
+
+        const LS = {
+            get: k => { try { return localStorage.getItem(k); } catch(e) { return null; } },
+            set: (k, v) => { try { localStorage.setItem(k, v); } catch(e) {} }
+        };
+        function esc(t) { return String(t == null ? '' : t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+        function imgFor(p) {
+            if (p.imageUrl && (p.imageUrl.startsWith('data:') || p.imageUrl.startsWith(SUPABASE_URL))) return p.imageUrl;
+            let h = 0; for (const c of p.name) h = (h * 31 + c.charCodeAt(0)) % 360;
+            const w = p.name.split(' ');
+            const l1 = esc(w.slice(0, 2).join(' ')), l2 = esc(w.slice(2).join(' '));
+            const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><rect width="400" height="400" fill="hsl(${h},60%,45%)"/><text x="200" y="${l2 ? 185 : 210}" font-family="sans-serif" font-size="38" font-weight="700" fill="#fff" text-anchor="middle">${l1}</text><text x="200" y="240" font-family="sans-serif" font-size="30" fill="#fff" fill-opacity=".85" text-anchor="middle">${l2}</text></svg>`;
+            return 'data:image/svg+xml,' + encodeURIComponent(svg).replace(/'/g, '%27');
+        }
+        function showToast(m) {
+            let t = document.getElementById('toast');
+            if (!t) { t = document.createElement('div'); t.id = 'toast'; t.className = 'fixed left-1/2 -translate-x-1/2 bottom-24 z-[60] bg-gray-900 text-white text-xs font-semibold px-4 py-2 rounded-xl shadow-lg transition-opacity'; document.body.appendChild(t); }
+            t.textContent = m; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 1500);
+        }
+        const ICONS = {'fa-shop':'🏪','fa-clock':'🕒','fa-magnifying-glass':'🔍','fa-circle-xmark':'✖','fa-user-gear':'⚙️','fa-basket-shopping':'🧺','fa-bottle-water':'🥤','fa-cookie-bite':'🍪','fa-ice-cream':'🍦','fa-xmark':'✕','fa-circle-exclamation':'⚠️','fa-whatsapp':'💬','fa-shield-halved':'🛡️','fa-lock':'🔒','fa-plus-circle':'➕','fa-pen':'✏️','fa-trash':'🗑️','fa-power-off':'⏻','fa-box-open':'📦'};
+        function fixIcons() {
+            document.querySelectorAll('i[class*="fa-"]').forEach(el => {
+                if (el.dataset.f) return; el.dataset.f = 1;
+                const k = [...el.classList].find(c => ICONS[c]);
+                if (k) el.textContent = ICONS[k];
+            });
+        }
+        new MutationObserver(fixIcons).observe(document.documentElement, {childList: true, subtree: true});
+
+        // GLOBAL APPLICATION STATE
+        let products = [];
+        let categories = ["Cold Drinks", "Biscuits & Kirana", "Icecream"];
+        let storeSettings = {
+            isTempClosed: false,
+            tempClosedMsg: "Back on Monday!",
+            hours: {
+                Monday: { open: "08:00", close: "22:00", closed: false },
+                Tuesday: { open: "08:00", close: "22:00", closed: false },
+                Wednesday: { open: "08:00", close: "22:00", closed: false },
+                Thursday: { open: "08:00", close: "22:00", closed: false },
+                Friday: { open: "08:00", close: "22:00", closed: false },
+                Saturday: { open: "08:00", close: "22:00", closed: false },
+                Sunday: { open: "08:00", close: "22:00", closed: false }
+            }
+        };
+
+        let selectedCategoryFilter = "All";
+        let searchQuery = "";
+        let cart = [];
+        let isAdminLoggedIn = false;
+        const isOut = p => p.inStock === false || (p.stockQty != null && p.stockQty <= 0);
+
+        // INITIALIZATION
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadData();
+            try {
+                const { data: sess } = await sb.auth.getSession();
+                isAdminLoggedIn = !!(sess && sess.session);
+            } catch (e) { isAdminLoggedIn = false; }
+            try { cart = JSON.parse(LS.get('danish_cart') || '[]'); } catch(e) { cart = []; }
+            try { const c = JSON.parse(LS.get('danish_cust') || '{}'); ['Name','Phone','Addr'].forEach(k => { const el = document.getElementById('cust'+k); if (el) el.value = c[k.toLowerCase()] || ''; }); } catch(e) {}
+            updateCartUI();
+            fixIcons();
+            document.getElementById('prodImageFile').addEventListener('change', e => {
+                const f = e.target.files[0]; if (!f) return;
+                const r = new FileReader();
+                r.onload = () => { const im = new Image(); im.onload = () => {
+                    const c = document.createElement('canvas'); c.width = c.height = 400;
+                    const m = Math.min(im.width, im.height);
+                    c.getContext('2d').drawImage(im, (im.width-m)/2, (im.height-m)/2, m, m, 0, 0, 400, 400);
+                    c.toBlob(async blob => {
+                        const path = `${Date.now()}.jpg`;
+                        const { error } = await sb.storage.from('product-images').upload(path, blob, { contentType: 'image/jpeg' });
+                        if (error) return alert('Upload failed: ' + error.message);
+                        const { data } = sb.storage.from('product-images').getPublicUrl(path);
+                        document.getElementById('prodImageUrl').value = data.publicUrl;
+                    }, 'image/jpeg', 0.8);
+                }; im.src = r.result; };
+                r.readAsDataURL(f);
+            });
+            renderCategoryTabs();
+            renderProducts();
+            renderDeliveryNotice();
+            checkStoreStatusClock();
+            setInterval(checkStoreStatusClock, 30000);
+        });
+
+        // IST STORE TIMING CALCULATOR
+        function isWithinHours(nowStr, openStr, closeStr) {
+            const m = t => { const [h, mi] = t.split(':').map(Number); return h * 60 + mi; };
+            const n = m(nowStr), o = m(openStr);
+            let c = m(closeStr);
+            if (c === 0) c = 1440;
+            if (c <= o) return n >= o || n < c;
+            return n >= o && n < c;
+        }
+
+        window.checkStoreStatusClock = function() {
+            const now = new Date();
+            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const istDate = new Date(utcTime + (3600000 * 5.5));
+
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const currentDayName = days[istDate.getDay()];
+
+            const currentHours = String(istDate.getHours()).padStart(2, '0');
+            const currentMinutes = String(istDate.getMinutes()).padStart(2, '0');
+            const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+            const daySetting = (storeSettings.hours && storeSettings.hours[currentDayName])
+                ? storeSettings.hours[currentDayName]
+                : { open: "08:00", close: "22:00", closed: false };
+
+            let isOpen = true;
+            let reason = "";
+
+            if (storeSettings.isTempClosed) {
+                isOpen = false;
+                reason = storeSettings.tempClosedMsg || "Temporarily Closed";
+            } else if (daySetting.closed) {
+                isOpen = false;
+                reason = `Closed today (${currentDayName})`;
+            } else if (!isWithinHours(currentTimeStr, daySetting.open, daySetting.close)) {
+                isOpen = false;
+                reason = `Closed (Opens ${daySetting.open} IST)`;
+            }
+
+            window.storeIsOpen = isOpen;
+            const badge = document.getElementById('storeStatusBadge');
+            const banner = document.getElementById('closedBanner');
+            const bannerMsg = document.getElementById('closedBannerMessage');
+            const closedCartNotice = document.getElementById('closedCartNotice');
+            const checkoutBtn = document.getElementById('whatsappCheckoutBtn');
+
+            if (isOpen) {
+                if(badge) {
+                    badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300";
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Open Now`;
+                }
+                if(banner) banner.classList.add('hidden');
+                if(closedCartNotice) closedCartNotice.classList.add('hidden');
+                if(checkoutBtn) {
+                    checkoutBtn.disabled = false;
+                    checkoutBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            } else {
+                if(badge) {
+                    badge.className = "inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300";
+                    badge.innerHTML = `<span class="w-2 h-2 rounded-full bg-rose-500"></span> Closed`;
+                }
+                if(banner) banner.classList.remove('hidden');
+                if(bannerMsg) bannerMsg.textContent = `Store is Currently Closed: ${reason}`;
+                if(closedCartNotice) closedCartNotice.classList.remove('hidden');
+                if(checkoutBtn) { checkoutBtn.disabled = true; checkoutBtn.classList.add('opacity-50', 'cursor-not-allowed'); }
+            }
+        };
+
+        // RENDER PRODUCTS
+        window.renderProducts = function() {
+            const grid = document.getElementById('productGrid');
+            const emptyState = document.getElementById('emptyState');
+            const countBadge = document.getElementById('productCountBadge');
+
+            if (!grid) return;
+
+            let filtered = products.filter(p => p.visible !== false);
+
+            if (selectedCategoryFilter !== 'All') {
+                filtered = filtered.filter(p => p.category === selectedCategoryFilter);
+            }
+
+            if (searchQuery.trim() !== '') {
+                const q = searchQuery.toLowerCase();
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(q) || (p.desc && p.desc.toLowerCase().includes(q)));
+            }
+
+            if (countBadge) countBadge.textContent = filtered.length;
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '';
+                if(emptyState) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.classList.add('flex');
+                }
+                return;
+            }
+
+            if(emptyState) {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            grid.innerHTML = filtered.map(p => {
+                const isOutOfStock = isOut(p);
+                const imgSrc = imgFor(p);
+
+                return `
+                <div class="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col justify-between overflow-hidden relative ${isOutOfStock ? 'opacity-65 grayscale-[30%]' : ''}">
+                    ${isOutOfStock ? `
+                        <div class="absolute top-2 left-2 z-10 bg-gray-900/80 backdrop-blur-md text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider">
+                            Out of stock
+                        </div>
+                    ` : ''}
+
+                    <div class="w-full aspect-square bg-gray-50 overflow-hidden relative">
+                        <img src="${imgSrc}" alt="${esc(p.name)}" class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300" >
+                    </div>
+
+                    <div class="p-3 flex-1 flex flex-col justify-between space-y-2">
+                        <div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wide">${esc(p.category)}</span>
+                            <h3 class="font-bold text-gray-900 text-xs sm:text-sm leading-snug line-clamp-2">${esc(p.name)}</h3>
+                            ${p.desc ? `<p class="text-[11px] text-gray-500 line-clamp-1 mt-0.5">${esc(p.desc)}</p>` : ''}
+                            ${(!isOutOfStock && p.stockQty != null) ? `<p class="text-[11px] font-bold mt-0.5 ${p.stockQty <= 5 ? 'text-amber-600' : 'text-gray-500'}">${p.stockQty} left in stock</p>` : ''}
+                        </div>
+
+                        <div class="flex items-center justify-between pt-1">
+                            <div>
+                                <span class="text-xs text-gray-400 font-medium">Price</span>
+                                <p class="font-black text-gray-900 text-sm sm:text-base">₹${p.price}</p>
+                            </div>
+
+                            <button onclick="addToCart('${p.id}')" ${isOutOfStock ? 'disabled' : ''}
+                                class="px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                                    isOutOfStock
+                                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                                    : 'bg-brand-500 hover:bg-brand-600 active:scale-95 text-white shadow-md shadow-brand-500/20'
+                                }">
+                                ${isOutOfStock ? 'Unavailable' : '+ Add'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        };
+
+        // CATEGORY CHIPS
+        window.renderCategoryTabs = function() {
+            const container = document.getElementById('categoryTabContainer');
+            if(!container) return;
+            const allCats = ["All", ...categories];
+
+            container.innerHTML = allCats.map(cat => `
+                <button onclick="selectCategory('${cat}')"
+                    class="px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                        selectedCategoryFilter === cat
+                        ? 'bg-brand-600 text-white shadow-md shadow-brand-600/30'
+                        : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                    }">
+                    ${esc(cat)}
+                </button>
+            `).join('');
+        };
+
+        // CATEGORY CLICK SELECTION
+        window.selectCategory = function(cat) {
+            selectedCategoryFilter = cat;
+            const titleSpan = document.getElementById('categoryTitleText');
+            if (titleSpan) {
+                titleSpan.textContent = cat === 'All' ? 'All Products' : cat;
+            }
+            renderCategoryTabs();
+            renderProducts();
+
+            const gridSection = document.getElementById('activeSectionTitle');
+            if (gridSection) {
+                gridSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+
+        window.resetFilter = function() {
+            searchQuery = "";
+            const searchInputDesk = document.getElementById('searchInputDesktop');
+            const searchInputMob = document.getElementById('searchInputMobile');
+            if(searchInputDesk) searchInputDesk.value = "";
+            if(searchInputMob) searchInputMob.value = "";
+            const clearBtn = document.getElementById('clearSearchBtnDesktop');
+            if(clearBtn) clearBtn.classList.add('hidden');
+            selectCategory('All');
+        };
+
+        // SEARCH
+        window.handleSearch = function(val) {
+            searchQuery = val;
+            const clearBtn = document.getElementById('clearSearchBtnDesktop');
+            if(clearBtn) {
+                if (val.length > 0) clearBtn.classList.remove('hidden');
+                else clearBtn.classList.add('hidden');
+            }
+            renderProducts();
+        };
+
+        window.clearSearch = function() {
+            handleSearch('');
+            const searchInputDesk = document.getElementById('searchInputDesktop');
+            const searchInputMob = document.getElementById('searchInputMobile');
+            if(searchInputDesk) searchInputDesk.value = "";
+            if(searchInputMob) searchInputMob.value = "";
+        };
+
+        // CART LOGIC
+        window.addToCart = function(productId) {
+            const p = products.find(item => item.id === productId);
+            if (!p || isOut(p)) return;
+
+            const existing = cart.find(item => item.id === productId);
+            if (p.stockQty != null && (existing ? existing.qty : 0) >= p.stockQty) return showToast('Only ' + p.stockQty + ' available');
+            if (existing) {
+                existing.qty += 1;
+            } else {
+                cart.push({ ...p, qty: 1 });
+            }
+            updateCartUI();
+            showToast('Added: ' + p.name);
+        };
+
+        window.updateCartQty = function(productId, delta) {
+            const idx = cart.findIndex(item => item.id === productId);
+            if (idx > -1) {
+                const pr = products.find(x => x.id === productId);
+                if (delta > 0 && pr && pr.stockQty != null && cart[idx].qty >= pr.stockQty) { showToast('Only ' + pr.stockQty + ' available'); return; }
+                cart[idx].qty += delta;
+                if (cart[idx].qty <= 0) {
+                    cart.splice(idx, 1);
+                }
+            }
+            updateCartUI();
+        };
+
+        function updateCartUI() {
+            const countBadge = document.getElementById('cartCountBadge');
+            const container = document.getElementById('cartItemsContainer');
+            const subtotalEl = document.getElementById('cartSubtotal');
+
+            const totalCount = cart.reduce((acc, i) => acc + i.qty, 0);
+            const subtotal = cart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+
+            if(countBadge) countBadge.textContent = totalCount;
+            if(subtotalEl) subtotalEl.textContent = `₹${subtotal}`;
+            LS.set('danish_cart', JSON.stringify(cart));
+
+            if(!container) return;
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-12 text-gray-400 space-y-2">
+                        <i class="fa-solid fa-basket-shopping text-4xl"></i>
+                        <p class="text-xs font-semibold">Your cart is empty</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = cart.map(i => `
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-2xl border border-gray-100">
+                    <div class="flex items-center gap-3">
+                        <img src="${imgFor(i)}" class="w-10 h-10 rounded-xl object-cover bg-white">
+                        <div>
+                            <h4 class="font-bold text-xs text-gray-900">${esc(i.name)}</h4>
+                            <p class="text-xs font-extrabold text-brand-600">₹${i.price * i.qty}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl border border-gray-200">
+                        <button onclick="updateCartQty('${i.id}', -1)" class="text-gray-500 hover:text-rose-600 font-bold text-xs px-1">-</button>
+                        <span class="text-xs font-bold text-gray-800 w-4 text-center">${i.qty}</span>
+                        <button onclick="updateCartQty('${i.id}', 1)" class="text-gray-500 hover:text-brand-600 font-bold text-xs px-1">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.toggleCartDrawer = function(forceOpen = false) {
+            const drawer = document.getElementById('cartDrawer');
+            const panel = document.getElementById('cartPanel');
+            if(!drawer || !panel) return;
+
+            if (forceOpen || drawer.classList.contains('pointer-events-none')) {
+                drawer.classList.remove('pointer-events-none', 'opacity-0');
+                drawer.classList.add('opacity-100');
+                panel.classList.remove('translate-x-full');
+            } else {
+                drawer.classList.add('pointer-events-none', 'opacity-0');
+                drawer.classList.remove('opacity-100');
+                panel.classList.add('translate-x-full');
+            }
+        };
+
+        window.checkoutWhatsApp = function() {
+            if (cart.length === 0) return alert('Your basket is empty!');
+            if (window.storeIsOpen === false) return alert('The store is closed right now. Please order when we reopen.');
+            const name = document.getElementById('custName').value.trim();
+            const phone = document.getElementById('custPhone').value.trim();
+            const addr = document.getElementById('custAddr').value.trim();
+            const delOn = storeSettings.deliveryAvailable !== false;
+            if (!name || (delOn && !addr)) return alert(delOn ? 'Please enter your name and delivery address.' : 'Please enter your name.');
+            LS.set('danish_cust', JSON.stringify({name, phone, addr}));
+            let total = 0;
+            const lines = cart.map((item, i) => { const t = item.price * item.qty; total += t; return `${i + 1}. ${item.name} x ${item.qty} = ₹${t}`; });
+            const msg = `*New Order - Danish Convenience Store*\n\n${lines.join('\n')}\n\n*Total: ₹${total}*\n\nName: ${name}\nPhone: ${phone || '-'}\n${delOn ? 'Address: ' + addr : 'Order type: PICKUP from shop (home delivery not available)'}`;
+            const url = 'https://wa.me/919665636210?text=' + encodeURIComponent(msg);
+            const a = document.createElement('a');
+            a.href = url; a.target = '_blank'; a.rel = 'noopener';
+            document.body.appendChild(a); a.click(); a.remove();
+        };
+
+        // ADMIN FUNCTIONS
+        window.openAdminModal = function() {
+            const modal = document.getElementById('adminModal');
+            if(!modal) return;
+            modal.classList.remove('hidden');
+
+            if (isAdminLoggedIn) {
+                document.getElementById('adminAuthSection')?.classList.add('hidden');
+                document.getElementById('adminDashboardSection')?.classList.remove('hidden');
+                populateCategoryDropdown();
+                renderAdminProductList();
+                renderAdminTimings();
+                renderAdminCategories();
+            } else {
+                document.getElementById('adminAuthSection')?.classList.remove('hidden');
+                document.getElementById('adminDashboardSection')?.classList.add('hidden');
+            }
+        };
+
+        window.closeAdminModal = function() {
+            document.getElementById('adminModal')?.classList.add('hidden');
+        };
+
+        window.togglePasswordVisibility = function() {
+            const el = document.getElementById('adminPasswordInput');
+            const btn = document.getElementById('togglePwBtn');
+            const show = el.type === 'password';
+            el.type = show ? 'text' : 'password';
+            btn.textContent = show ? '🙈' : '👁️';
+        };
+
+        window.verifyAdminPassword = async function() {
+            const msg = document.getElementById('adminAuthMsg');
+            const btn = document.getElementById('adminLoginBtn');
+            const say = (t, ok) => { msg.textContent = t; msg.className = 'text-xs font-semibold min-h-[1rem] ' + (ok ? 'text-emerald-600' : 'text-rose-600'); };
+            const email = document.getElementById('adminEmailInput').value.trim();
+            const password = document.getElementById('adminPasswordInput').value;
+            if (!email || !password) return say('Please type both email and password.');
+            if (typeof sb === 'undefined') return say('Supabase did not load. Check your internet and refresh the page.');
+            say('Logging in...', true);
+            btn.disabled = true;
+            try {
+                const { error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) { say('Login failed: ' + error.message); return; }
+                say('');
+                isAdminLoggedIn = true;
+                openAdminModal();
+            } catch (e) {
+                say('Login error: ' + (e && e.message ? e.message : e));
+            } finally {
+                btn.disabled = false;
+            }
+        };
+
+        window.switchAdminTab = function(tabName) {
+            ['Products', 'Timings', 'Categories'].forEach(t => {
+                const sec = document.getElementById(`adminTab${t}`);
+                if(sec) sec.classList.add('hidden');
+                const btn = document.getElementById(`adminTab${t}Btn`);
+                if(btn) btn.className = "pb-2 border-b-2 border-transparent text-gray-500 hover:text-gray-900";
+            });
+
+            const activeBtn = document.getElementById(`adminTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}Btn`);
+            if(activeBtn) activeBtn.className = "pb-2 border-b-2 border-brand-600 text-brand-600 font-bold";
+            const activeTab = document.getElementById(`adminTab${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+            if(activeTab) activeTab.classList.remove('hidden');
+        };
+
+        function populateCategoryDropdown() {
+            const select = document.getElementById('prodCategory');
+            if(select) {
+                select.innerHTML = categories.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+            }
+        }
+
+        window.saveProduct = async function() {
+            const id = document.getElementById('editingProductId').value;
+            const name = document.getElementById('prodName').value.trim();
+            const price = parseFloat(document.getElementById('prodPrice').value);
+            if (!name || isNaN(price)) return alert('Please enter valid product name and price.');
+
+            const p = {
+                id: id || 'prod_' + Date.now(),
+                name, price,
+                category: document.getElementById('prodCategory').value,
+                desc: document.getElementById('prodDesc').value.trim(),
+                inStock: document.getElementById('prodInStock').checked,
+                visible: document.getElementById('prodVisible').checked,
+                imageUrl: document.getElementById('prodImageUrl').value.trim(),
+                stockQty: (() => { const v = document.getElementById('prodQty').value.trim(); if (v === '') return null; const n = parseInt(v, 10); return (isNaN(n) || n < 0) ? null : n; })()
+            };
+            const { error } = await sb.from('products').upsert(toRow(p));
+            if (error) return alert('Save failed: ' + error.message);
+
+            const idx = products.findIndex(x => x.id === p.id);
+            if (idx > -1) products[idx] = p; else products.unshift(p);
+            renderProducts(); renderAdminProductList(); cancelProductEdit();
+            alert('Product saved successfully!');
+        };
+
+        window.editProduct = function(productId) {
+            const p = products.find(prod => prod.id === productId);
+            if (!p) return;
+
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-pen text-brand-600"></i> Edit Product`;
+            document.getElementById('editingProductId').value = p.id;
+            document.getElementById('prodName').value = p.name;
+            document.getElementById('prodPrice').value = p.price;
+            document.getElementById('prodCategory').value = p.category;
+            document.getElementById('prodDesc').value = p.desc || '';
+            document.getElementById('prodImageUrl').value = p.imageUrl || '';
+            document.getElementById('prodQty').value = p.stockQty == null ? '' : p.stockQty;
+            document.getElementById('prodInStock').checked = p.inStock !== false;
+            document.getElementById('prodVisible').checked = p.visible !== false;
+        };
+
+        window.deleteProduct = async function(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            const { error } = await sb.from('products').delete().eq('id', productId);
+            if (error) return alert('Delete failed: ' + error.message);
+            products = products.filter(p => p.id !== productId);
+            renderProducts(); renderAdminProductList();
+        };
+
+        window.toggleStockQuick = async function(productId) {
+            const p = products.find(x => x.id === productId);
+            if (!p) return;
+            const goingIn = isOut(p);
+            const clearQty = goingIn && p.stockQty != null && p.stockQty <= 0;
+            const upd = { in_stock: goingIn };
+            if (clearQty) upd.stock_qty = null;
+            const { error } = await sb.from('products').update(upd).eq('id', productId);
+            if (error) return alert('Update failed: ' + error.message);
+            p.inStock = goingIn;
+            if (clearQty) { p.stockQty = null; showToast('Restocked. Number hidden, set a new quantity if you want to show it.'); }
+            renderProducts(); renderAdminProductList();
+        };
+
+        window.cancelProductEdit = function() {
+            document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-plus-circle text-brand-600"></i> Add New Product`;
+            document.getElementById('editingProductId').value = '';
+            document.getElementById('prodName').value = '';
+            document.getElementById('prodPrice').value = '';
+            document.getElementById('prodDesc').value = '';
+            document.getElementById('prodQty').value = '';
+            document.getElementById('prodImageUrl').value = '';
+            document.getElementById('prodImageFile').value = '';
+            document.getElementById('prodInStock').checked = true;
+            document.getElementById('prodVisible').checked = true;
+        };
+
+        let adminSearchQuery = '';
+        let adminFilter = 'all';
+
+        window.adminSearch = function(val) {
+            adminSearchQuery = val;
+            renderAdminProductList();
+        };
+
+        window.setAdminFilter = function(f) {
+            adminFilter = f;
+            document.getElementById('adminFilterAll').className = 'px-3 py-2 rounded-xl ' + (f === 'all' ? 'bg-brand-600 text-white' : 'bg-gray-200 text-gray-700');
+            document.getElementById('adminFilterOut').className = 'px-3 py-2 rounded-xl ' + (f === 'out' ? 'bg-rose-600 text-white' : 'bg-gray-200 text-gray-700');
+            renderAdminProductList();
+        };
+
+        window.updatePriceQuick = async function(productId, input) {
+            const p = products.find(x => x.id === productId);
+            if (!p) return;
+            const price = parseFloat(input.value);
+            if (isNaN(price) || price < 0) { input.value = p.price; return showToast('Enter a valid price'); }
+            if (price === p.price) return;
+            const { error } = await sb.from('products').update({ price }).eq('id', productId);
+            if (error) { input.value = p.price; return alert('Price update failed: ' + error.message); }
+            p.price = price;
+            renderProducts();
+            showToast('Price updated: ' + p.name + ' = ₹' + price);
+        };
+
+        window.updateQtyQuick = async function(productId, input) {
+            const p = products.find(x => x.id === productId);
+            if (!p) return;
+            const v = input.value.trim();
+            let qty = null;
+            if (v !== '') { qty = parseInt(v, 10); if (isNaN(qty) || qty < 0) { input.value = p.stockQty == null ? '' : p.stockQty; return showToast('Enter a valid number'); } }
+            if (qty === p.stockQty) return;
+            const { error } = await sb.from('products').update({ stock_qty: qty }).eq('id', productId);
+            if (error) { input.value = p.stockQty == null ? '' : p.stockQty; return alert('Quantity update failed: ' + error.message); }
+            p.stockQty = qty;
+            renderProducts(); renderAdminProductList();
+            showToast(qty == null ? 'Quantity hidden: ' + p.name : p.name + ': ' + qty + ' left');
+        };
+
+        function renderOutStockPanel() {
+            const list = document.getElementById('outStockList');
+            const count = document.getElementById('outStockCount');
+            if (!list) return;
+            const out = products.filter(isOut);
+            if (count) count.textContent = out.length;
+            if (out.length === 0) {
+                list.innerHTML = '<span class="text-xs text-rose-700">Everything is in stock 🎉</span>';
+                return;
+            }
+            list.innerHTML = out.map(p => `
+                <span class="inline-flex items-center gap-2 bg-white border border-rose-200 rounded-xl pl-3 pr-1 py-1 text-xs font-semibold text-gray-800">
+                    ${esc(p.name)}
+                    <button onclick="toggleStockQuick('${p.id}')" class="px-2 py-1 rounded-lg bg-emerald-600 text-white font-bold">Restock</button>
+                </span>
+            `).join('');
+        }
+
+        function renderAdminProductList() {
+            const container = document.getElementById('adminProductList');
+            const countEl = document.getElementById('adminProdCount');
+            renderOutStockPanel();
+
+            let list = products;
+            if (adminFilter === 'out') list = list.filter(isOut);
+            const q = adminSearchQuery.trim().toLowerCase();
+            if (q) list = list.filter(p => p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q));
+
+            if (countEl) countEl.textContent = list.length + ' of ' + products.length;
+            if (!container) return;
+
+            if (list.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-xs text-gray-400">No products found.</div>`;
+                return;
+            }
+
+            container.innerHTML = list.map(p => `
+                <div class="p-3 flex items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <img src="${imgFor(p)}" class="w-10 h-10 rounded-xl object-cover bg-gray-100 flex-shrink-0">
+                        <div class="min-w-0">
+                            <h5 class="font-bold text-gray-900 truncate">${esc(p.name)}</h5>
+                            <p class="text-brand-700 font-semibold">${esc(p.category)}</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap justify-end items-center gap-2 flex-shrink-0">
+                        <input type="number" min="0" value="${p.stockQty == null ? '' : p.stockQty}" placeholder="qty" title="Stock quantity (optional)" onchange="updateQtyQuick('${p.id}', this)" class="w-14 px-1.5 py-1 text-xs font-bold border rounded-lg bg-white focus:outline-none">
+                        <div class="flex items-center border rounded-lg px-1.5 bg-white">
+                            <span class="text-gray-500 font-bold">₹</span>
+                            <input type="number" min="0" value="${p.price}" onchange="updatePriceQuick('${p.id}', this)" class="w-14 py-1 text-xs font-bold focus:outline-none">
+                        </div>
+                        <button onclick="toggleStockQuick('${p.id}')" class="px-2 py-1 rounded-lg font-bold border ${!isOut(p) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}">
+                            ${!isOut(p) ? 'In Stock' : 'Out of Stock'}
+                        </button>
+                        <button onclick="editProduct('${p.id}')" class="p-1.5 text-gray-500 hover:text-brand-600">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button onclick="deleteProduct('${p.id}')" class="p-1.5 text-gray-500 hover:text-rose-600">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderAdminTimings() {
+            const tempToggle = document.getElementById('tempClosedToggle');
+            const tempMsg = document.getElementById('tempClosedMsg');
+            if(tempToggle) tempToggle.checked = !!storeSettings.isTempClosed;
+            if(tempMsg) tempMsg.value = storeSettings.tempClosedMsg || '';
+            renderAdminDelivery();
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const container = document.getElementById('weeklyTimingGrid');
+            if (!container) return;
+
+            container.innerHTML = days.map(day => {
+                const s = (storeSettings.hours && storeSettings.hours[day]) || { open: "08:00", close: "22:00", closed: false };
+                return `
+                    <div class="flex flex-wrap items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-gray-200">
+                        <span class="font-bold text-gray-800 w-24">${day}</span>
+                        <div class="flex items-center gap-2">
+                            <input type="time" id="open_${day}" value="${s.open}" class="border rounded-lg px-2 py-1 text-xs">
+                            <span class="text-gray-400">to</span>
+                            <input type="time" id="close_${day}" value="${s.close}" class="border rounded-lg px-2 py-1 text-xs">
+                        </div>
+                        <label class="flex items-center gap-1.5 text-xs font-semibold cursor-pointer">
+                            <input type="checkbox" id="closed_${day}" ${s.closed ? 'checked' : ''} class="w-4 h-4 text-brand-600 rounded">
+                            <span>Closed Day</span>
+                        </label>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.saveStoreSettings = async function(silent) {
+            const isTempClosed = document.getElementById('tempClosedToggle').checked;
+            const tempClosedMsg = document.getElementById('tempClosedMsg').value;
+
+            const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+            const hours = {};
+
+            days.forEach(day => {
+                hours[day] = {
+                    open: document.getElementById(`open_${day}`).value,
+                    close: document.getElementById(`close_${day}`).value,
+                    closed: document.getElementById(`closed_${day}`).checked
+                };
+            });
+
+            storeSettings = { ...storeSettings, isTempClosed, tempClosedMsg, hours };
+            const { error } = await sb.from('store_settings').upsert({ id: 1, data: storeSettings });
+            if (error) return alert('Could not save settings: ' + error.message);
+            checkStoreStatusClock();
+            if (silent !== true) alert('Store settings & timings saved!');
+        };
+
+        window.addCategory = async function() {
+            const input = document.getElementById('newCategoryInput');
+            const name = input.value.trim();
+            if (!name) return;
+
+            if (!categories.includes(name)) {
+                const { error } = await sb.from('categories').upsert({ name });
+                if (error) return alert('Could not add category: ' + error.message);
+                categories.push(name);
+                renderCategoryTabs();
+                renderAdminCategories();
+                populateCategoryDropdown();
+            }
+            input.value = '';
+        };
+
+        function renderAdminCategories() {
+            const container = document.getElementById('adminCategoryList');
+            if(!container) return;
+            container.innerHTML = categories.map(c => `
+                <span class="px-3 py-1 bg-white border border-gray-200 text-gray-700 font-semibold text-xs rounded-xl shadow-xs">
+                    ${esc(c)}
+                </span>
+            `).join('');
+        }
+
+        window.resetToInitialData = async function() {
+            if (!confirm('Upload default products to the database?')) return;
+            const rows = DEFAULT_PRODUCTS.map(p => toRow({ ...p, imageUrl: '' }));
+            const { error } = await sb.from('products').upsert(rows);
+            if (error) return alert('Failed: ' + error.message);
+            await loadData();
+            renderProducts(); renderAdminProductList();
+            alert('Done!');
+        };
+
+        // HOME DELIVERY NOTICE + CHART
+        window.renderDeliveryNotice = function() {
+            const box = document.getElementById('deliveryNotice');
+            const addr = document.getElementById('custAddr');
+            if (!box) return;
+            const on = storeSettings.deliveryAvailable !== false;
+            if (addr) addr.placeholder = on ? 'Delivery address *' : 'Address (optional, pickup only)';
+            box.classList.remove('hidden');
+            if (!on) {
+                const extra = storeSettings.deliveryMsg ? ' ' + esc(storeSettings.deliveryMsg) : '';
+                box.className = 'text-xs bg-rose-50 text-rose-700 p-2.5 rounded-xl border border-rose-200';
+                box.innerHTML = '🚫 <b>Home delivery is not available right now.</b>' + extra + ' You can still order and pick up from the shop.';
+            } else {
+                box.className = 'text-xs bg-sky-50 text-sky-800 p-2.5 rounded-xl border border-sky-200';
+                box.innerHTML = '🛵 Delivery charges differ by location.' +
+                    (storeSettings.deliveryChartUrl ? ' <button onclick="openDeliveryChart()" class="font-bold underline">See delivery charges</button>' : '');
+            }
+        };
+
+        window.openDeliveryChart = function() {
+            if (!storeSettings.deliveryChartUrl) return;
+            document.getElementById('chartModalImg').src = storeSettings.deliveryChartUrl;
+            document.getElementById('chartModal').classList.remove('hidden');
+        };
+        window.closeDeliveryChart = function() {
+            document.getElementById('chartModal').classList.add('hidden');
+        };
+
+        function renderAdminDelivery() {
+            const t = document.getElementById('deliveryToggle');
+            const m = document.getElementById('deliveryMsgInput');
+            const img = document.getElementById('deliveryChartPreview');
+            const rm = document.getElementById('deliveryChartRemove');
+            if (t) t.checked = storeSettings.deliveryAvailable !== false;
+            if (m) m.value = storeSettings.deliveryMsg || '';
+            const url = storeSettings.deliveryChartUrl || '';
+            if (img) { img.src = url; img.classList.toggle('hidden', !url); }
+            if (rm) rm.classList.toggle('hidden', !url);
+        }
+
+        async function saveSettingsRemote(okMsg) {
+            const { error } = await sb.from('store_settings').upsert({ id: 1, data: storeSettings });
+            if (error) { alert('Could not save: ' + error.message); return false; }
+            renderDeliveryNotice();
+            if (okMsg) showToast(okMsg);
+            return true;
+        }
+
+        window.saveDeliverySettings = async function() {
+            storeSettings = {
+                ...storeSettings,
+                deliveryAvailable: document.getElementById('deliveryToggle').checked,
+                deliveryMsg: document.getElementById('deliveryMsgInput').value.trim()
+            };
+            await saveSettingsRemote('Delivery settings saved');
+        };
+
+        window.uploadDeliveryChart = function(input) {
+            const f = input.files[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = () => { const im = new Image(); im.onload = () => {
+                const sc = Math.min(1, 1400 / im.width);
+                const c = document.createElement('canvas');
+                c.width = Math.round(im.width * sc); c.height = Math.round(im.height * sc);
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+                ctx.drawImage(im, 0, 0, c.width, c.height);
+                c.toBlob(async blob => {
+                    showToast('Uploading picture...');
+                    const path = `delivery-chart-${Date.now()}.jpg`;
+                    const { error } = await sb.storage.from('product-images').upload(path, blob, { contentType: 'image/jpeg' });
+                    if (error) return alert('Upload failed: ' + error.message);
+                    const { data } = sb.storage.from('product-images').getPublicUrl(path);
+                    storeSettings = { ...storeSettings, deliveryChartUrl: data.publicUrl };
+                    if (await saveSettingsRemote('Delivery chart uploaded')) { input.value = ''; renderAdminDelivery(); }
+                }, 'image/jpeg', 0.85);
+            }; im.src = r.result; };
+            r.readAsDataURL(f);
+        };
+
+        window.removeDeliveryChart = async function() {
+            if (!confirm('Remove the delivery charges picture?')) return;
+            storeSettings = { ...storeSettings, deliveryChartUrl: '' };
+            if (await saveSettingsRemote('Picture removed')) renderAdminDelivery();
+        };
+    </script>
+</body>
+</html>
